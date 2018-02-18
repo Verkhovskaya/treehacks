@@ -41,9 +41,9 @@ from vpython import *
 scene.width = 1420
 scene.height = 765
 scene.autoscale = False
-scene.center = vector(0,10,0)
 scene.range = 20
 scene.fov = 0.5
+scene.userspin = True
 
 draw_color = (1,1,1)
 
@@ -107,24 +107,24 @@ def make_stl():
 	global fig
 	fig.generate_stl()
 
-layout = [(0, -1), (-0.5, 0.7), (0.5, 0.7), (-0.7, 0.5), (0, 0), (0.7, 0.5)]
+layout = [(0, -1), (-0.7, 0.5), (0.7, 0.5), (-0.7, -0.5), (0, 0), (0.7, -0.5)]
 def getPosition(data):
+	top_positions = [None, None, None]
+	top_readings = [0,0,0]
 	data = normalize(data)
-	closest_pin = data.index(max(data))
-	max_reading = data[closest_pin]
-	data.remove(max_reading)
-	second_closest = data.index(max(data))
-	second_reading = data[second_closest]
-	first_layout = layout[closest_pin]
-	if closest_pin > second_closest:
-		second_layout = layout[second_closest]
-	else:
-		second_layout = layout[second_closest+1]
-
-	x = 40*(first_layout[0]*1.0*max_reading/(max_reading+second_reading) + second_layout[0]*1.0*second_reading/(max_reading+second_reading))
-	y = 20-(max_reading+second_reading)/50
-	z = -40*(first_layout[1]*1.0*max_reading/(max_reading+second_reading) + second_layout[1]*1.0*second_reading/(max_reading+second_reading))
-
+	for each in data:
+		if each > top_readings[0]:
+			top_positions = [layout[data.index(each)]] + top_positions[:2]
+			top_readings = [each] + top_readings[:2]
+		elif each > top_readings[1]:
+			top_positions = [top_positions[0]] + [layout[data.index(each)]] + [top_positions[1]]
+			top_readings = [top_readings[0]] + [each] + [top_readings[1]]
+		elif each > top_readings[2]:
+			top_positions = top_positions[:2] + [layout[data.index(each)]]
+			top_readings = top_readings[:2] + [each]
+	x = 40*sum([top_positions[x][0]*top_readings[x]/sum(top_readings[:3]) for x in range(3)])
+	y = 10-(top_readings[0]+top_readings[1])/50
+	z = -20-40*sum([top_positions[x][1]*top_readings[x]/sum(top_readings[:3]) for x in range(3)])
 	return x,y,z
 
 scene.append_to_caption("\n  ")
